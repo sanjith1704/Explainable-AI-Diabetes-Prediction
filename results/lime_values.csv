@@ -1,0 +1,9 @@
+Condition,Feature,LIME_Weight,Absolute_Weight,Direction,Rank
+Insulin <= -0.22,Insulin,-0.08515592247573289,0.08515592247573289,Pushes risk lower,1
+-0.37 < Age <= 0.65,Age,0.04579088233088338,0.04579088233088338,Pushes risk higher,2
+-0.71 < BMI <= -0.01,BMI,0.01414616950908252,0.01414616950908252,Pushes risk higher,3
+Pregnancies <= -0.85,Pregnancies,-0.012703083170047196,0.012703083170047196,Pushes risk lower,4
+-0.16 < Glucose <= 0.61,Glucose,-0.010032907037450115,0.010032907037450115,Pushes risk lower,5
+-0.29 < DiabetesPedigreeFunction <= 0.49,DiabetesPedigreeFunction,0.002844747034632478,0.002844747034632478,Pushes risk higher,6
+SkinThickness <= -0.45,SkinThickness,0.0024695922576000074,0.0024695922576000074,Pushes risk higher,7
+-0.66 < BloodPressure <= -0.01,BloodPressure,-0.0003825015850097483,0.0003825015850097483,Pushes risk lower,8
