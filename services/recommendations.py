@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional
 
 
 FEATURE_DISPLAY_NAMES = {
-    "Glucose": "Fasting Blood Glucose",
+    # PIMA Cohort Features
+    "Glucose": "Blood Glucose",
     "BMI": "Body Mass Index (BMI)",
     "BloodPressure": "Diastolic Blood Pressure",
     "Insulin": "Serum Insulin",
@@ -21,6 +22,15 @@ FEATURE_DISPLAY_NAMES = {
     "Pregnancies": "Pregnancy History",
     "DiabetesPedigreeFunction": "Diabetes Pedigree Function (Genetic History)",
     "SkinThickness": "Triceps Skinfold Thickness",
+    # 100k Clinical Cohort Features
+    "HbA1c_level": "HbA1c (Glycated Hemoglobin)",
+    "blood_glucose_level": "Blood Glucose Level",
+    "hypertension": "Hypertension History",
+    "heart_disease": "Heart Disease History",
+    "smoking_history": "Smoking History",
+    "bmi": "Body Mass Index (BMI)",
+    "age": "Patient Age",
+    "gender": "Biological Sex",
 }
 
 GENERAL_PREVENTIVE_WELLNESS = [
@@ -41,28 +51,121 @@ def _get_guidance_for_feature(feature: str, val: Any, shap_val: float) -> Dict[s
     """
     f_clean = feature.strip()
 
-    if f_clean == "Glucose":
+    if f_clean in ("Glucose", "blood_glucose_level"):
         return {
-            "feature": "Glucose",
+            "feature": f_clean,
             "display_name": "Blood Glucose",
             "patient_value": val,
             "shap_value": shap_val,
             "is_modifiable": True,
             "why_it_matters": (
-                "Glucose is one of the factors contributing most strongly to the model's estimated risk "
+                "Blood glucose concentration is one of the strongest drivers of the model's estimated risk "
                 f"for this assessment (positive SHAP contribution of {shap_val:+.4f})."
             ),
             "guidance": [
                 "Discuss appropriate blood-glucose testing and routine monitoring with a qualified healthcare professional.",
-                "If not recently evaluated, discuss fasting plasma glucose and/or glycated hemoglobin (HbA1c) screening with a physician.",
-                "Encourage balanced meals emphasizing vegetables, high-fiber foods, whole grains, and appropriate lean protein sources.",
-                "Limit excessive intake of refined carbohydrates, confectioneries, and sugar-sweetened beverages.",
-                "Engage in regular physical activity appropriate for your baseline fitness and health status.",
+                "Discuss fasting plasma glucose, oral glucose tolerance, and HbA1c screening with a physician.",
+                "Encourage balanced meals emphasizing vegetables, high soluble fiber, whole grains, and lean proteins.",
+                "Limit excessive intake of refined sugars, processed carbohydrates, and sugar-sweetened beverages.",
+                "Engage in regular physical activity appropriate for baseline fitness to enhance insulin-mediated glucose disposal.",
                 "Clinical Notice: Do not independently initiate or alter any medication, insulin therapy, or treatment regimen without physician oversight.",
             ],
         }
 
-    elif f_clean == "BMI":
+    elif f_clean == "HbA1c_level":
+        return {
+            "feature": "HbA1c_level",
+            "display_name": "HbA1c (Glycated Hemoglobin)",
+            "patient_value": val,
+            "shap_value": shap_val,
+            "is_modifiable": True,
+            "why_it_matters": (
+                "HbA1c reflects 2-3 month average glycemic exposure and is the clinical gold standard "
+                f"for diabetes evaluation (positive SHAP contribution of {shap_val:+.4f})."
+            ),
+            "guidance": [
+                "Schedule a follow-up consultation with a physician for confirmatory clinical laboratory evaluation.",
+                "American Diabetes Association (ADA) reference criteria: <5.7% Normal, 5.7%-6.4% Prediabetes, >=6.5% Diabetes threshold.",
+                "Incorporate personalized low-glycemic dietary strategies, increasing legume, vegetable, and oat consumption.",
+                "Engage in combined aerobic and resistance exercise (targeting >=150 minutes weekly) to improve long-term glycemic regulation.",
+                "Clinical Notice: HbA1c is a clinical diagnostic marker; a computational risk score does not replace clinical lab testing.",
+            ],
+        }
+
+    elif f_clean == "hypertension":
+        return {
+            "feature": "hypertension",
+            "display_name": "Hypertension History",
+            "patient_value": val,
+            "shap_value": shap_val,
+            "is_modifiable": True,
+            "why_it_matters": (
+                "Hypertension is a major cardiovascular comorbidity that frequently clusters with insulin resistance "
+                f"and elevated the model's predicted risk (positive SHAP contribution of {shap_val:+.4f})."
+            ),
+            "guidance": [
+                "Maintain routine blood-pressure monitoring in a resting state and discuss readings with your clinician.",
+                "Adopt dietary patterns proven to support vascular health, such as the DASH (Dietary Approaches to Stop Hypertension) diet.",
+                "Reduce dietary sodium intake and maintain adequate dietary potassium and magnesium from whole food sources.",
+                "Clinical Notice: Cardiovascular comorbidities multiply metabolic risk; discuss comprehensive cardiometabolic health with a physician.",
+            ],
+        }
+
+    elif f_clean == "heart_disease":
+        return {
+            "feature": "heart_disease",
+            "display_name": "Heart Disease History",
+            "patient_value": val,
+            "shap_value": shap_val,
+            "is_modifiable": False,
+            "why_it_matters": (
+                "Established cardiovascular disease represents a documented clinical comorbidity "
+                f"that significantly elevated the model's risk estimation (positive SHAP contribution of {shap_val:+.4f})."
+            ),
+            "guidance": [
+                "Prioritize ongoing integrated cardiovascular and metabolic clinical management with your healthcare team.",
+                "Adhere closely to clinician-prescribed cardiovascular prevention guidelines and routine lipid profile monitoring.",
+                "Adopt an anti-inflammatory, Mediterranean-style dietary pattern rich in omega-3 fatty acids and dietary fiber.",
+                "Clinical Notice: Pre-existing cardiovascular history is non-modifiable; emphasis is placed on secondary prevention and holistic wellness.",
+            ],
+        }
+
+    elif f_clean == "smoking_history":
+        return {
+            "feature": "smoking_history",
+            "display_name": "Smoking History",
+            "patient_value": val,
+            "shap_value": shap_val,
+            "is_modifiable": True,
+            "why_it_matters": (
+                "Tobacco exposure accelerates vascular endothelial dysfunction and impairs tissue insulin sensitivity "
+                f"(positive SHAP contribution of {shap_val:+.4f})."
+            ),
+            "guidance": [
+                "If currently smoking or using tobacco products, seek evidence-based smoking cessation support and resources.",
+                "Smoking cessation rapidly improves microvascular circulation and reduces long-term cardiometabolic risk.",
+                "Discuss nicotine replacement options, behavioral counseling, and cessation programs with a healthcare provider.",
+            ],
+        }
+
+    elif f_clean == "gender":
+        return {
+            "feature": "gender",
+            "display_name": "Biological Sex",
+            "patient_value": val,
+            "shap_value": shap_val,
+            "is_modifiable": False,
+            "why_it_matters": (
+                "Biological sex reflects demographic cohort risk weighting within the model "
+                f"(positive SHAP contribution of {shap_val:+.4f})."
+            ),
+            "guidance": [
+                "Biological sex is an inherent, non-modifiable demographic feature.",
+                "Maintain sex-appropriate preventive cardiovascular and metabolic wellness checkups.",
+            ],
+        }
+
+    elif f_clean in ("BMI", "bmi"):
         return {
             "feature": "BMI",
             "display_name": "Body Mass Index (BMI)",
@@ -118,7 +221,7 @@ def _get_guidance_for_feature(feature: str, val: Any, shap_val: float) -> Dict[s
             ],
         }
 
-    elif f_clean == "Age":
+    elif f_clean in ("Age", "age"):
         return {
             "feature": "Age",
             "display_name": "Age",

@@ -133,6 +133,7 @@ def explain_single_patient(
     explainer: shap.TreeExplainer,
     patient_scaled: pd.DataFrame,
     raw_patient_dict: Dict[str, Any],
+    features: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     """
     Computes local SHAP attributions for a single patient, including
@@ -146,8 +147,11 @@ def explain_single_patient(
         values = values[0]
     shap_vals = values.astype(float)
 
+    if features is None:
+        features = list(patient_scaled.columns) if hasattr(patient_scaled, "columns") else FEATURE_ORDER
+
     records = []
-    for feat, sv in zip(FEATURE_ORDER, shap_vals):
+    for feat, sv in zip(features, shap_vals):
         val = raw_patient_dict.get(feat, None)
         direction = "Pushes risk higher" if sv >= 0 else "Pushes risk lower"
         records.append(

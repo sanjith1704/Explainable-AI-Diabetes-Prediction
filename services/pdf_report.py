@@ -233,24 +233,46 @@ def generate_pdf_report(
 
     # 2. Clinical Measurements
     story.append(Paragraph("2. Clinical Measurements", section_title))
-    measurements_data = [
-        [
-            Paragraph(f"<b>Pregnancies:</b> {patient_data.get('Pregnancies', 0)}", body_style),
-            Paragraph(f"<b>Glucose:</b> {patient_data.get('Glucose', 'N/A')} mg/dL", body_style),
-        ],
-        [
-            Paragraph(f"<b>Blood Pressure:</b> {patient_data.get('BloodPressure', 'N/A')} mmHg", body_style),
-            Paragraph(f"<b>Skin Thickness:</b> {patient_data.get('SkinThickness', 'N/A')} mm", body_style),
-        ],
-        [
-            Paragraph(f"<b>Insulin:</b> {patient_data.get('Insulin', 'N/A')} muU/mL", body_style),
-            Paragraph(f"<b>BMI:</b> {patient_data.get('BMI', 'N/A')} kg/m²", body_style),
-        ],
-        [
-            Paragraph(f"<b>Diabetes Pedigree Function:</b> {patient_data.get('DiabetesPedigreeFunction', 'N/A')}", body_style),
-            Paragraph("<i>(Patient Age recorded in Patient Information above)</i>", caption_style),
-        ],
-    ]
+    is_100k = "HbA1c_level" in patient_data or "blood_glucose_level" in patient_data
+
+    if is_100k:
+        smoking_val = patient_data.get("smoking_history", "never")
+        if isinstance(smoking_val, (int, float)):
+            smoking_val = {0: "Non-smoker / No Info", 1: "Former smoker", 2: "Ever smoked", 3: "Current smoker"}.get(int(smoking_val), str(smoking_val))
+
+        measurements_data = [
+            [
+                Paragraph(f"<b>HbA1c Level:</b> {patient_data.get('HbA1c_level', 'N/A')} %", body_style),
+                Paragraph(f"<b>Blood Glucose:</b> {patient_data.get('blood_glucose_level', 'N/A')} mg/dL", body_style),
+            ],
+            [
+                Paragraph(f"<b>Body Mass Index (BMI):</b> {patient_data.get('bmi', 'N/A')} kg/m²", body_style),
+                Paragraph(f"<b>Hypertension History:</b> {'Yes (Diagnosed)' if patient_data.get('hypertension') == 1 else 'No'}", body_style),
+            ],
+            [
+                Paragraph(f"<b>Heart Disease History:</b> {'Yes (Diagnosed)' if patient_data.get('heart_disease') == 1 else 'No'}", body_style),
+                Paragraph(f"<b>Smoking Status:</b> {str(smoking_val).title()}", body_style),
+            ],
+        ]
+    else:
+        measurements_data = [
+            [
+                Paragraph(f"<b>Pregnancies:</b> {patient_data.get('Pregnancies', 0)}", body_style),
+                Paragraph(f"<b>Glucose:</b> {patient_data.get('Glucose', 'N/A')} mg/dL", body_style),
+            ],
+            [
+                Paragraph(f"<b>Blood Pressure:</b> {patient_data.get('BloodPressure', 'N/A')} mmHg", body_style),
+                Paragraph(f"<b>Skin Thickness:</b> {patient_data.get('SkinThickness', 'N/A')} mm", body_style),
+            ],
+            [
+                Paragraph(f"<b>Insulin:</b> {patient_data.get('Insulin', 'N/A')} muU/mL", body_style),
+                Paragraph(f"<b>BMI:</b> {patient_data.get('BMI', 'N/A')} kg/m²", body_style),
+            ],
+            [
+                Paragraph(f"<b>Diabetes Pedigree Function:</b> {patient_data.get('DiabetesPedigreeFunction', 'N/A')}", body_style),
+                Paragraph("<i>(Patient Age recorded in Patient Information above)</i>", caption_style),
+            ],
+        ]
     measurements_table = Table(measurements_data, colWidths=[270, 270])
     measurements_table.setStyle(
         TableStyle(
@@ -274,12 +296,13 @@ def generate_pdf_report(
 
     prob_pct = f"{probability * 100:.2f}%"
     model_name = model_info.get("model_name", "XGBoost")
-    roc_auc = model_info.get("roc_auc", 0.8198)
+    roc_auc = model_info.get("roc_auc", 0.9770 if is_100k else 0.8198)
 
+    cohort_label = "Clinical Cohort (N = 100,000)" if is_100k else "PIMA Benchmark (N = 768)"
     risk_html = f"""
     <b>Risk Classification:</b> <font color="{risk_color}"><b>{risk_text}</b></font><br/>
     <b>Estimated Probability:</b> {prob_pct} &nbsp;|&nbsp; <b>Decision Threshold:</b> 50.0%<br/>
-    <b>Evaluated Architecture:</b> {model_name} (Holdout ROC-AUC: {roc_auc:.4f})
+    <b>Evaluated Architecture:</b> {model_name} &nbsp;|&nbsp; <b>Cohort:</b> {cohort_label} (ROC-AUC: {roc_auc:.4f})
     """
     risk_table = Table([[Paragraph(risk_html, body_style)]], colWidths=[540])
     risk_table.setStyle(

@@ -1,0 +1,9 @@
+Feature,Display,Value,SHAP_Value,Absolute_Importance
+age,Age (years),-0.0791066178444639,-0.45713732,0.45713732
+HbA1c_level,HbA1c Level (%),0.9941926097000414,-0.1704898,0.1704898
+bmi,Body Mass Index (kg/m²),0.5706253734025263,0.12465353,0.12465353
+gender,Biological Sex,0.0,-0.114520095,0.114520095
+hypertension,Hypertension History,0.0,-0.11073841,0.11073841
+heart_disease,Heart Disease History,0.0,-0.05932582,0.05932582
+smoking_history,Smoking History,0.0,-0.051790368,0.051790368
+blood_glucose_level,Blood Glucose Level (mg/dL),0.5079857090000729,-0.022823105,0.022823105

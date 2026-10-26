@@ -255,14 +255,61 @@ def build_academic_word_report(output_path: str = "Explainable_AI_Diabetes_Predi
     # -------------------------------------------------------------------------
     # 4. DATASET & PREPROCESSING PIPELINE
     # -------------------------------------------------------------------------
-    add_styled_heading(doc, "4. Dataset Analysis & Preprocessing Methodology", level=1)
+    add_styled_heading(doc, "4. Dataset Analysis & Multi-Cohort Preprocessing Methodology", level=1)
     doc.add_paragraph(
-        "The project is evaluated on the benchmark PIMA Indians Diabetes Database (National Institute of Diabetes and Digestive "
-        "and Kidney Diseases). The dataset contains 768 patient records with 8 numerical clinical features and a binary Outcome target."
+        "To address faculty evaluation feedback regarding dataset volume and demographic realism, "
+        "the architecture integrates a Multi-Cohort structure comparing two clinical cohorts:\n"
+        "1. Primary Clinical Cohort (N = 100,000): A large-scale clinical dataset incorporating global diagnostic gold standards "
+        "(HbA1c, blood glucose), cardiovascular comorbidities (hypertension, heart disease), lifestyle exposure (smoking status), "
+        "and balanced demographics (58.6% Female, 41.4% Male).\n"
+        "2. Historical PIMA Indians Benchmark (N = 768): Preserved for comparative cross-cohort verification."
     )
 
-    # Dataset Table
-    add_styled_heading(doc, "Table 1: Clinical Feature Specifications & Missing-Zero Rationale", level=2)
+    # Dataset Comparison Table
+    add_styled_heading(doc, "Table 1: Cohort Architecture Comparison (PIMA 768 vs. Clinical 100k)", level=2)
+    comp_tbl = doc.add_table(rows=7, cols=3)
+    comp_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    c_widths = [Inches(2.0), Inches(2.2), Inches(2.8)]
+    c_headers = ["Dimension", "PIMA Indians Benchmark", "Clinical 100k Dataset (Upgraded)"]
+    for i, h in enumerate(c_headers):
+        cell = comp_tbl.rows[0].cells[i]
+        cell.width = c_widths[i]
+        set_cell_shading(cell, "0F766E")
+        set_cell_margins(cell, top=100, bottom=100, left=100, right=100)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_after = Pt(0)
+        r = p.add_run(h)
+        r.bold = True
+        r.font.size = Pt(8.5)
+        r.font.color.rgb = RGBColor(255, 255, 255)
+
+    c_rows = [
+        ("Cohort Size (N)", "768 records", "100,000 records (130x scale increase)"),
+        ("Demographic Coverage", "Exclusively Female (100%)", "Balanced (58.6% Female, 41.4% Male)"),
+        ("Diagnostic Biomarkers", "Glucose, Insulin, Skin Thickness", "HbA1c Level (%), Blood Glucose (mg/dL)"),
+        ("Comorbidities", "None recorded", "Hypertension (0/1), Heart Disease (0/1)"),
+        ("Lifestyle Factors", "None recorded", "Smoking History (never, former, current, etc.)"),
+        ("Target Imbalance", "~35% Diabetic", "~8.8% Diabetic (True Population Prevalence)"),
+    ]
+    for row_idx, data in enumerate(c_rows, start=1):
+        row = comp_tbl.rows[row_idx]
+        bg = "FFFFFF" if row_idx % 2 != 0 else "F8FAFC"
+        for col_idx, text in enumerate(data):
+            cell = row.cells[col_idx]
+            cell.width = c_widths[col_idx]
+            set_cell_shading(cell, bg)
+            set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_after = Pt(0)
+            r = p.add_run(text)
+            r.font.size = Pt(8)
+            if col_idx == 0:
+                r.bold = True
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # Dataset Table PIMA
+    add_styled_heading(doc, "Table 1B: Clinical Feature Specifications & Missing-Zero Rationale (PIMA)", level=2)
     feat_table = doc.add_table(rows=9, cols=4)
     feat_table.alignment = WD_TABLE_ALIGNMENT.CENTER
     widths = [Inches(1.8), Inches(1.2), Inches(1.8), Inches(2.0)]
@@ -313,11 +360,84 @@ def build_academic_word_report(output_path: str = "Explainable_AI_Diabetes_Predi
     # -------------------------------------------------------------------------
     add_styled_heading(doc, "5. Machine Learning Modeling & Benchmarking", level=1)
     doc.add_paragraph(
-        "To establish rigorous baseline comparisons, five algorithms were benchmarked using identical leak-free 5-fold Stratified "
-        "Cross-Validation on the training cohort (N=614):"
+        "To establish rigorous baseline comparisons, candidate algorithms were benchmarked under identical leak-free "
+        "conditions across both the 100k Clinical Cohort and the historical PIMA benchmark."
     )
 
-    # Benchmark Table
+    # 100k Benchmark Table
+    add_styled_heading(doc, "Table 2: 100,000-Record Clinical Cohort Holdout Benchmark (N=19,226)", level=2)
+    b100k_tbl = doc.add_table(rows=5, cols=6)
+    b100k_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    b100k_widths = [Inches(2.0), Inches(1.0), Inches(1.0), Inches(1.0), Inches(1.0), Inches(1.0)]
+
+    b100k_headers = ["Algorithm Evaluated", "Accuracy", "Precision", "Recall", "F1 Score", "ROC-AUC"]
+    for i, h in enumerate(b100k_headers):
+        cell = b100k_tbl.rows[0].cells[i]
+        cell.width = b100k_widths[i]
+        set_cell_shading(cell, "0F766E")
+        set_cell_margins(cell, top=100, bottom=100, left=100, right=100)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_after = Pt(0)
+        r = p.add_run(h)
+        r.bold = True
+        r.font.size = Pt(8.5)
+        r.font.color.rgb = RGBColor(255, 255, 255)
+
+    b100k_data = [
+        ("XGBoost (Primary)", "97.20%", "98.82%", "69.10%", "0.8133", "0.9770"),
+        ("XGBoost (Calibrated)", "96.88%", "91.27%", "71.52%", "0.8020", "0.9770"),
+        ("Random Forest", "97.18%", "100.00%", "68.04%", "0.8098", "0.9694"),
+        ("Logistic Regression", "95.81%", "85.32%", "63.38%", "0.7273", "0.9593"),
+    ]
+
+    for r_idx, data in enumerate(b100k_data, start=1):
+        row = b100k_tbl.rows[r_idx]
+        bg = "FFFFFF" if r_idx % 2 != 0 else "F8FAFC"
+        for c_idx, text in enumerate(data):
+            cell = row.cells[c_idx]
+            cell.width = b100k_widths[c_idx]
+            set_cell_shading(cell, bg)
+            set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_after = Pt(0)
+            r = p.add_run(text)
+            r.font.size = Pt(8)
+            if c_idx == 0:
+                r.bold = True
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    # Embed 100k Figures
+    fig_dir = Path("results/figures")
+    if (fig_dir / "roc_curve_100k.png").exists():
+        add_styled_heading(doc, "Diagnostic Figures: 100k Cohort Performance", level=2)
+        doc.add_picture(str(fig_dir / "roc_curve_100k.png"), width=Inches(5.6))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap = doc.add_paragraph("Figure 1: Receiver Operating Characteristic (ROC) curve on 100k holdout test set (AUC = 0.9770).")
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.style.font.size = Pt(8)
+        p_cap.style.font.italic = True
+        doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    if (fig_dir / "shap_summary_100k.png").exists():
+        doc.add_picture(str(fig_dir / "shap_summary_100k.png"), width=Inches(5.8))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap = doc.add_paragraph("Figure 2: Global SHAP feature attribution beeswarm on 100k Clinical Cohort (HbA1c & Blood Glucose dominant).")
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.style.font.size = Pt(8)
+        p_cap.style.font.italic = True
+        doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    if (fig_dir / "sensitivity_hba1c_100k.png").exists():
+        doc.add_picture(str(fig_dir / "sensitivity_hba1c_100k.png"), width=Inches(5.4))
+        doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap = doc.add_paragraph("Figure 3: OAT Sensitivity sweep for HbA1c confirming monotonic risk trajectory across ADA diagnostic thresholds.")
+        p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_cap.style.font.size = Pt(8)
+        p_cap.style.font.italic = True
+        doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    # Benchmark Table PIMA
     add_styled_heading(doc, "Table 2: Candidate Models 5-Fold Stratified Cross-Validation Benchmark", level=2)
     bench_tbl = doc.add_table(rows=6, cols=5)
     bench_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER

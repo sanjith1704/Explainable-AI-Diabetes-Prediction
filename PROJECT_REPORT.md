@@ -99,48 +99,54 @@ flowchart TD
 
 ---
 
-## 3. Dataset & Preprocessing Pipeline
+## 3. Dataset & Multi-Cohort Preprocessing Pipeline
 
-### 3.1 Dataset Profile: PIMA Indians Diabetes Database
-- **Total Records**: 768 patient profiles.
-- **Target Variable**: `Outcome` (Binary: 0 = Non-diabetic, 1 = Diabetic; prevalence $\approx 34.9\%$).
-- **Features**: 8 clinical measurements:
-  1. `Pregnancies`: Number of times pregnant.
-  2. `Glucose`: Plasma glucose concentration at 2 hours in an oral glucose tolerance test (mg/dL).
-  3. `BloodPressure`: Diastolic blood pressure (mmHg).
-  4. `SkinThickness`: Triceps skin fold thickness (mm).
-  5. `Insulin`: 2-Hour serum insulin ($\mu\text{U/mL}$).
-  6. `BMI`: Body mass index ($\text{kg/m}^2$).
-  7. `DiabetesPedigreeFunction`: Genetic predisposition score based on family history.
-  8. `Age`: Age in completed years.
+### 3.1 Faculty Evaluation Context & Dataset Scale Motivation
+Following academic faculty review and viva guidance, the project was upgraded from a single-cohort legacy benchmark ($N=768$) to a comprehensive **Multi-Cohort Architecture**. University reviewers noted that while PIMA is a canonical computer science benchmark, its small size ($N=768$), exclusive female demographic, and age (collected in 1988) limit modern clinical realism. 
 
-### 3.2 Physiological Zero Handling
-In human physiology, measurements of `Glucose`, `BloodPressure`, `SkinThickness`, `Insulin`, and `BMI` cannot physically equal zero in living subjects. A value of $0$ indicates unrecorded or missing data:
-- `MissingZeroHandler` dynamically maps zeros in these 5 features to `np.nan`.
-- `Pregnancies` correctly permits $0$ as a biologically valid count.
+To resolve this, the system incorporates the **100,000-Record Clinical Diabetes Prediction Dataset** as the primary diagnostic cohort while preserving the PIMA dataset for historical cross-cohort comparison.
 
-### 3.3 Leak-Free Train/Test Splitting
-- Split ratio: $80\%$ Training ($N=614$), $20\%$ Holdout Testing ($N=154$).
-- Stratification applied to preserve class proportions ($34.9\%$ diabetic across both sets).
-- **Zero Data Leakage**: The `SimpleImputer` (median strategy) and `StandardScaler` were fitted **strictly on the training split** and persisted as serialized artifacts (`models/imputer.pkl` and `models/scaler.pkl`). Holdout data and user inputs are transformed using these pre-fitted parameters.
+### 3.2 Cohort Architecture Comparison
+
+| Dimension | PIMA Indians Benchmark (Cohort A) | Clinical Diabetes Dataset (Cohort B - Upgraded) | Academic & Clinical Advantage |
+|:---|:---:|:---:|:---|
+| **Sample Size ($N$)** | $768$ rows | **$100,000$ rows** | **$130\times$ scale expansion**, high statistical power, eliminates small-sample overfitting |
+| **Demographic Coverage** | Exclusively Female (100%) | **Balanced (58.6% Female, 41.4% Male)** | Naturally represents male and female patients; eliminates pregnancy-locking workarounds |
+| **Primary Biomarkers** | Glucose, Insulin, Skin Thickness | **HbA1c Level (%)**, **Blood Glucose (mg/dL)** | **HbA1c is the global clinical diagnostic gold standard** recognized by the ADA and WHO |
+| **Comorbidities** | None recorded | **Hypertension (0/1)**, **Heart Disease (0/1)** | Captures metabolic syndrome and cardiovascular clustering |
+| **Lifestyle Factors** | None recorded | **Smoking History** (never, former, current, etc.) | Real-world behavioral vascular risk factor |
+| **Target Imbalance** | ~35% Diabetic | ~8.8% Diabetic | Reflects realistic true population prevalence in clinical screening |
+
+### 3.3 Leak-Free Preprocessing Pipelines
+- **100k Clinical Pipeline (`src/preprocessing_100k.py`)**:
+  - Deduplicated to $96,128$ unique patient records to prevent test-set contamination.
+  - Stratified 80/20 train/test split ($N_{\text{train}} = 76,902$, $N_{\text{test}} = 19,226$).
+  - `StandardScaler` fitted **strictly on the training split** for continuous features (`age`, `bmi`, `HbA1c_level`, `blood_glucose_level`).
+  - Categorical variables mapped cleanly: `gender` (0 = Female, 1 = Male), `smoking_history` (0 = never/No Info, 1 = former/not current, 2 = ever, 3 = current).
+- **PIMA Benchmark Pipeline (`src/preprocessing.py`)**:
+  - Missing physiological zero handling: zeros in `Glucose`, `BloodPressure`, `SkinThickness`, `Insulin`, and `BMI` converted to `np.nan`.
+  - Median `SimpleImputer` and `StandardScaler` fitted strictly on training split ($N=614$).
 
 ---
 
 ## 4. Machine Learning Modeling & Benchmarking
 
-### 4.1 Multi-Model Empirical Benchmark
-Five candidate algorithms were benchmarked under 5-Fold Stratified Cross-Validation using identical leak-free preprocessing pipelines:
+### 4.1 Primary Clinical Cohort Benchmark ($N=100,000$, Holdout $N=19,226$)
+Four candidate algorithms were trained and benchmarked on the 100k clinical dataset:
 
-| Algorithm | Mean CV ROC-AUC | Mean CV Accuracy | Mean CV Recall | Mean CV F1 |
-|:---|:---:|:---:|:---:|:---:|
-| **XGBoost (Baseline)** | **0.8322** ($\pm 0.0237$) | $75.89\%$ | $60.29\%$ | $63.81\%$ |
-| **XGBoost (Optimized)** | **0.8430** ($\pm 0.0195$) | $76.87\%$ | $67.28\%$ | $67.42\%$ |
-| **LightGBM** | $0.8315$ ($\pm 0.0210$) | $75.40\%$ | $62.15\%$ | $64.10\%$ |
-| **Random Forest** | $0.8290$ ($\pm 0.0245$) | $75.24\%$ | $58.88\%$ | $62.40\%$ |
-| **Logistic Regression** | $0.8265$ ($\pm 0.0220$) | $76.22\%$ | $56.54\%$ | $62.50\%$ |
+| Algorithm | Accuracy | Precision | Recall | F1-Score | ROC-AUC | Brier Score |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **XGBoost (Primary)** | **97.20%** | **98.82%** | 69.10% | **0.8133** | **0.9770** | **0.0235** |
+| **XGBoost (Calibrated)** | 96.88% | 91.27% | **71.52%** | 0.8020 | **0.9770** | 0.0253 |
+| **Random Forest** | 97.18% | 100.00% | 68.04% | 0.8098 | 0.9694 | 0.0242 |
+| **Logistic Regression** | 95.81% | 85.32% | 63.38% | 0.7273 | 0.9593 | 0.0335 |
 
-### 4.2 Baseline vs. Calibrated Holdout Evaluation ($N=154$)
-In clinical diabetes screening, a **False Negative** (missing a diabetic patient) carries severe health risks, whereas a False Positive triggers low-risk confirmatory laboratory testing. Therefore, high recall and calibrated probabilities take precedence over raw accuracy:
+- **Stratified 5-Fold Cross-Validation on 100k Primary XGBoost**:
+  - Fold 1: $0.9785$ | Fold 2: $0.9793$ | Fold 3: $0.9793$ | Fold 4: $0.9798$ | Fold 5: $0.9789$
+  - **Mean 5-Fold ROC-AUC: 0.9792 ± 0.0004** (demonstrating extreme statistical stability and zero overfitting).
+
+### 4.2 Historical PIMA Benchmark ($N=768$, Holdout $N=154$)
+Preserved for comparative verification and cross-cohort benchmark comparison:
 
 | Evaluation Metric | Baseline XGBoost | Optimized XGBoost | Calibrated XGBoost ($\tau=0.30$) |
 |:---|:---:|:---:|:---:|
@@ -148,12 +154,9 @@ In clinical diabetes screening, a **False Negative** (missing a diabetic patient
 | **Recall (Sensitivity)** | $55.56\%$ ($30/54$) | **$83.33\%$** ($45/54$) | **$81.48\%$** ($44/54$) |
 | **Precision** | **$65.22\%$** | $58.44\%$ | $61.11\%$ |
 | **F1-Score** | $60.00\%$ | $68.70\%$ | **$69.84\%$** |
-| **F2-Score (Recall Weighted)** | $57.25\%$ | **$76.79\%$** | $76.39\%$ |
 | **ROC-AUC** | $0.8198$ | $0.8243$ | **$0.8310$** |
-| **PR-AUC** | $0.6751$ | $0.6918$ | **$0.7009$** |
-| **Brier Score (Calibration)** | $0.1812$ | $0.1745$ | **$0.1670$** (Lowest error) |
+| **Brier Score** | $0.1812$ | $0.1745$ | **$0.1670$** |
 | **False Negatives (Missed Cases)** | **24** | **9** ($-62.5\%$) | **10** ($-58.3\%$) |
-| **False Positives** | 16 | 32 | 28 |
 
 ---
 

@@ -1,0 +1,9 @@
+Feature,Display,SHAP,LIME
+gender,Biological Sex,-0.114520095,-0.005822742571734123
+age,Age (years),-0.45713732,-0.004655531898283715
+hypertension,Hypertension History,-0.11073841,0.007172237208861247
+heart_disease,Heart Disease History,-0.05932582,0.002433292245420724
+smoking_history,Smoking History,-0.051790368,0.0032590814426741587
+bmi,Body Mass Index (kg/m²),0.12465353,0.013268154102126369
+HbA1c_level,HbA1c Level (%),-0.1704898,0.5732715806389568
+blood_glucose_level,Blood Glucose Level (mg/dL),-0.022823105,-0.07067902134453295

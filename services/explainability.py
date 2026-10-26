@@ -21,9 +21,10 @@ def get_local_shap_explanation(
     explainer: shap.TreeExplainer,
     patient_scaled: pd.DataFrame,
     raw_patient_dict: Dict[str, Any],
+    features: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     """Computes ranked local SHAP feature attributions for a single patient."""
-    return explain_single_patient(explainer, patient_scaled, raw_patient_dict)
+    return explain_single_patient(explainer, patient_scaled, raw_patient_dict, features=features)
 
 
 def get_local_lime_explanation(
